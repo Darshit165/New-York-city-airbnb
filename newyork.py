@@ -397,5 +397,88 @@ plt.title("Tuned Decision Tree - Confusion Matrix")
 plt.show()
 
 
+#Random forest defualt parameter
+# PIPELINE
+rf_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(
+        class_weight='balanced',
+        random_state=42,
+        n_jobs=-1
+    ))
+])
+# 5-FOLD CROSS VALIDATION
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+cv_scores = cross_val_score(
+    rf_pipeline,
+    X_train,
+    y_train,
+    cv=cv,
+    scoring='f1_macro',
+    n_jobs=-1
+)
+rf_cv_f1 = cv_scores.mean()
+# TRAIN MODEL
+rf_pipeline.fit(X_train, y_train)
+# PREDICTION
+rf_pred = rf_pipeline.predict(X_test)
+# EVALUATION METRICS
+rf_accuracy = accuracy_score(y_test, rf_pred)
+rf_precision = precision_score(
+    y_test,
+    rf_pred,
+    average='macro',
+    zero_division=0
+)
+rf_recall = recall_score(
+    y_test,
+    rf_pred,
+    average='macro',
+    zero_division=0
+)
+rf_f1_macro = f1_score(
+    y_test,
+    rf_pred,
+    average='macro',
+    zero_division=0
+)
+rf_f1_weighted = f1_score(
+    y_test,
+    rf_pred,
+    average='weighted',
+    zero_division=0
+)
+# PRINT RESULTS
+print("=" * 60)
+print("RANDOM FOREST - EVALUATION")
+print("=" * 60)
+print("5-Fold CV F1 Macro:", rf_cv_f1)
+print("Test Accuracy:", rf_accuracy)
+print("Test Precision Macro:", rf_precision)
+print("Test Recall Macro:", rf_recall)
+print("Test F1 Macro:", rf_f1_macro)
+print("Test F1 Weighted:", rf_f1_weighted)
+# CONFUSION MATRIX
+rf_cm = confusion_matrix(y_test, rf_pred)
+print("\nConfusion Matrix:")
+print(rf_cm)
+# CONFUSION MATRIX PLOT
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    rf_cm,
+    annot=True,
+    fmt='d',
+    xticklabels=rf_pipeline.classes_,
+    yticklabels=rf_pipeline.classes_
+)
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Random Forest - Confusion Matrix")
+plt.show()
+
 
 
