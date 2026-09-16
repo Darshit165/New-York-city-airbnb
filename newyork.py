@@ -55,7 +55,7 @@ sns.heatmap(corr, annot=True, cmap='coolwarm')
 plt.show()
 
 #Geographic Distribution (Bonus Visual)
-sns.scatterplot(x='longitude', y='latitude', hue='neighbourhood_group', data=df, alpha=0.5)
+sns.scatterplot(x='longitude', y='latitude', hue='room_type', data=df, alpha=0.5)
 plt.show()
 
 #Data Cleaning & Feature Engineering
@@ -77,3 +77,11 @@ df_clean['minimum_nights'] = df_clean['minimum_nights'].clip(upper=nights_cap)
 # df_clean = df_clean[df_clean['price'] < price_cap]
 # df_clean = df_clean[df_clean['minimum_nights'] < nights_cap]
 print(df_clean.shape)
+
+#4. Separate features (X) from the target (y)
+y = df_clean['room_type']
+X = df_clean.drop(columns=['room_type'])
+#Train / Test Split
+#We hold out 20% of the data as a test set that is never touched during model selection or tuning — it is only used once, at the very end, to report the final, honest performance. stratify=y keeps the same class proportions in both splits, which matters because the target is imbalanced.
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42, stratify=y)
