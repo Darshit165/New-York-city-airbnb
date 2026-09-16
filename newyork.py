@@ -45,3 +45,11 @@ plt.show()
 #Univariate Analysis — Categorical Features
 sns.countplot(data=df, x='neighbourhood_group')
 plt.show()
+#Bivariate Analysis — Features vs Target
+sns.boxplot(x='room_type', y='price', data=df)
+plt.show()
+
+#Correlation between numeric features
+corr = df[numerical_cols+['latitude', 'longitude']].corr()
+sns.heatmap(corr, annot=True, cmap='coolwarm')
+plt.show()
