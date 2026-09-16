@@ -42,3 +42,6 @@ numerical_cols = ["price", "minimum_nights", "number_of_reviews",
 
 df[numerical_cols].hist(bins=30, figsize=(12, 8))
 plt.show()
+#Univariate Analysis — Categorical Features
+sns.countplot(data=df, x='neighbourhood_group')
+plt.show()
