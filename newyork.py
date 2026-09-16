@@ -188,3 +188,27 @@ print("Test Precision Macro:", lr_precision)
 print("Test Recall Macro:", lr_recall)
 print("Test F1 Macro:", lr_f1_macro)
 print("Test F1 Weighted:", lr_f1_weighted)
+#CLASSIFICATION REPORT
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    lr_pred,
+    zero_division=0
+))
+#CONFUSION MATRIX
+cm = confusion_matrix(y_test, lr_pred)
+print("\nConfusion Matrix:")
+print(cm)
+#CONFUSION MATRIX PLOT
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt='d',
+    xticklabels=lr_pipeline.classes_,
+    yticklabels=lr_pipeline.classes_
+)
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Logistic Regression - Confusion Matrix")
+plt.show()
