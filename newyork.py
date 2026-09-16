@@ -53,3 +53,8 @@ plt.show()
 corr = df[numerical_cols+['latitude', 'longitude']].corr()
 sns.heatmap(corr, annot=True, cmap='coolwarm')
 plt.show()
+
+#Geographic Distribution (Bonus Visual)
+sns.scatterplot(x='longitude', y='latitude', hue='neighbourhood_group', data=df, alpha=0.5)
+plt.show()
+
