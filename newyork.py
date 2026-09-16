@@ -212,3 +212,91 @@ plt.xlabel("Predicted Label")
 plt.ylabel("Actual Label")
 plt.title("Logistic Regression - Confusion Matrix")
 plt.show()
+
+#Decision Tree with default training
+dt_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', DecisionTreeClassifier(
+        class_weight='balanced',
+        random_state=42
+    ))
+])
+# 5-FOLD CROSS VALIDATION
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+cv_scores = cross_val_score(
+    dt_pipeline,
+    X_train,
+    y_train,
+    cv=cv,
+    scoring='f1_macro'
+)
+dt_cv_f1 = cv_scores.mean()
+# TRAIN MODEL
+dt_pipeline.fit(X_train, y_train)
+# PREDICTION
+dt_pred = dt_pipeline.predict(X_test)
+# EVALUATION METRICS
+dt_accuracy = accuracy_score(y_test, dt_pred)
+
+dt_precision = precision_score(
+    y_test,
+    dt_pred,
+    average='macro',
+    zero_division=0
+)
+dt_recall = recall_score(
+    y_test,
+    dt_pred,
+    average='macro',
+    zero_division=0
+)
+dt_f1_macro = f1_score(
+    y_test,
+    dt_pred,
+    average='macro',
+    zero_division=0
+)
+dt_f1_weighted = f1_score(
+    y_test,
+    dt_pred,
+    average='weighted',
+    zero_division=0
+)
+# PRINT RESULTS
+print("=" * 60)
+print("DECISION TREE - EVALUATION")
+print("=" * 60)
+
+print("5-Fold CV F1 Macro:", dt_cv_f1)
+print("Test Accuracy:", dt_accuracy)
+print("Test Precision Macro:", dt_precision)
+print("Test Recall Macro:", dt_recall)
+print("Test F1 Macro:", dt_f1_macro)
+print("Test F1 Weighted:", dt_f1_weighted)
+# CLASSIFICATION REPORT
+dt_cm = confusion_matrix(y_test, dt_pred)
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    dt_pred,
+    zero_division=0
+))
+# CONFUSION MATRIX
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    dt_cm,
+    annot=True,
+    fmt='d',
+    xticklabels=dt_pipeline.classes_,
+    yticklabels=dt_pipeline.classes_
+)
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Decision Tree - Confusion Matrix")
+plt.show()
+
+
