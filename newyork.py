@@ -13,6 +13,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PowerTransformer
 from sklearn.compose import ColumnTransformer
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -120,3 +121,70 @@ preprocessor = ColumnTransformer(transformers=[
 ])
 
 print(preprocessor)
+
+#Logistic Regression pipeline
+#pipeline
+lr_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', LogisticRegression(
+        class_weight='balanced',
+        max_iter=1000,
+        random_state=42
+    ))
+])
+# 5-FOLD CROSS VALIDATION
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+cv_scores = cross_val_score(
+    lr_pipeline,
+    X_train,
+    y_train,
+    cv=cv,
+    scoring='f1_macro'
+)
+lr_cv_f1 = cv_scores.mean()
+#TRAIN MODEL
+lr_pipeline.fit(X_train, y_train)
+#PREDICTION
+lr_pred = lr_pipeline.predict(X_test)
+#EVALUATION METRICS
+lr_accuracy = accuracy_score(y_test, lr_pred)
+
+lr_precision = precision_score(
+    y_test,
+    lr_pred,
+    average='macro',
+    zero_division=0
+)
+lr_recall = recall_score(
+    y_test,
+    lr_pred,
+    average='macro',
+    zero_division=0
+)
+lr_f1_macro = f1_score(
+    y_test,
+    lr_pred,
+    average='macro',
+    zero_division=0
+)
+lr_f1_weighted = f1_score(
+    y_test,
+    lr_pred,
+    average='weighted',
+    zero_division=0
+)
+#print result
+print("=" * 60)
+print("LOGISTIC REGRESSION - EVALUATION")
+print("=" * 60)
+
+print("5-Fold CV F1 Macro:", lr_cv_f1)
+print("Test Accuracy:", lr_accuracy)
+print("Test Precision Macro:", lr_precision)
+print("Test Recall Macro:", lr_recall)
+print("Test F1 Macro:", lr_f1_macro)
+print("Test F1 Weighted:", lr_f1_weighted)
