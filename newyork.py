@@ -4,15 +4,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.compose import ColumnTransformer
+from sklearn.metrics import confusion_matrix,accuracy_score,precision_score,recall_score,f1_score,roc_auc_score,roc_curve,classification_report
+from sklearn.metrics import accuracy_score
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import GridSearchCV,RandomizedSearchCV
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report,precision_score,recall_score,f1_score,roc_auc_score
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, PowerTransformer
+from sklearn.compose import ColumnTransformer
+import warnings
+warnings.filterwarnings('ignore')
 
 df = pd.read_csv("F:\\project\\New york airbnb\\AB_NYC_2019.csv")
 print(df.head())
@@ -85,3 +87,36 @@ X = df_clean.drop(columns=['room_type'])
 #We hold out 20% of the data as a test set that is never touched during model selection or tuning — it is only used once, at the very end, to report the final, honest performance. stratify=y keeps the same class proportions in both splits, which matters because the target is imbalanced.
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42, stratify=y)
+
+#Preprocessing: ColumnTransformer + Pipeline
+
+#Production ML code should never manually transform train/test data with separate lines — it's error-prone and leaks information. Instead we build a single, reusable ColumnTransformer:
+
+#Numeric features → median imputation + standard scaling
+#Categorical features → most-frequent imputation + one-hot encoding
+#This transformer will be the first step of every model pipeline below, so preprocessing is learned only on training data and applied consistently everywhere (no data leakage).
+numerical_cols = ["latitude","longitude","price", "minimum_nights", "number_of_reviews",
+                 "reviews_per_month", "calculated_host_listings_count",
+                 "availability_365"]
+
+categorical_cols = ['neighbourhood_group', 'neighbourhood']
+
+#1. Pipeline -> for Numeric Columns
+numeric_pipeline = Pipeline(steps=[
+    ('impute', SimpleImputer(strategy="median")),
+    ('scale', StandardScaler())
+])
+
+
+#2. Pipeline -> for Categorical Columns
+categorical_pipeline = Pipeline(steps=[
+    ('impute', SimpleImputer(strategy="most_frequent")),
+    ('encode', OneHotEncoder(handle_unknown='ignore'))
+])
+
+preprocessor = ColumnTransformer(transformers=[
+    ("numerical", numeric_pipeline, numerical_cols),
+    ("categorical", categorical_pipeline, categorical_cols )
+])
+
+print(preprocessor)
