@@ -34,3 +34,11 @@ print(df['room_type'].value_counts())
 #Visualizing the target variable
 sns.countplot(x='room_type', data=df)
 plt.show()
+#The classes are imbalanced -> Shared Room is a Small Minority.
+#Univariate Analysis — Numeric Features
+numerical_cols = ["price", "minimum_nights", "number_of_reviews",
+                 "reviews_per_month", "calculated_host_listings_count",
+                 "availability_365"]
+
+df[numerical_cols].hist(bins=30, figsize=(12, 8))
+plt.show()
