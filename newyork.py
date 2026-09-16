@@ -58,3 +58,22 @@ plt.show()
 sns.scatterplot(x='longitude', y='latitude', hue='neighbourhood_group', data=df, alpha=0.5)
 plt.show()
 
+#Data Cleaning & Feature Engineering
+#Drop columns that are pure identifiers or free text and carry no generalizable signal for a tabular model (id, name, host_id, host_name, last_review).
+#Fill missing reviews_per_month with 0 (no reviews yet).
+#Cap extreme outliers in price and minimum_nights using percentile clipping, so a handful of data-entry errors (e.g. $10,000/night, 1,250 minimum nights) don't distort the model.
+#Separate features (X) from the target (y).
+
+#1. Drop Colunmns that dont help us.
+df_clean = df.drop(columns=['id', 'name', 'host_id', 'host_name', 'last_review'])
+#2. No reviews yet -> 0 reviews per month, not missing
+df_clean['reviews_per_month'] = df_clean['reviews_per_month'].fillna(0)
+#3. Cap Extreme outliers instead of deleting rows.
+price_cap  = df_clean['price'].quantile(0.99)
+nights_cap = df_clean['minimum_nights'].quantile(0.99)
+
+df_clean['price'] = df_clean['price'].clip(upper=price_cap)
+df_clean['minimum_nights'] = df_clean['minimum_nights'].clip(upper=nights_cap)
+# df_clean = df_clean[df_clean['price'] < price_cap]
+# df_clean = df_clean[df_clean['minimum_nights'] < nights_cap]
+print(df_clean.shape)
