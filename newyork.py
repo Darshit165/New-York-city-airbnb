@@ -299,4 +299,103 @@ plt.ylabel("Actual Label")
 plt.title("Decision Tree - Confusion Matrix")
 plt.show()
 
+# Hyper parameter tuning for decision tree using gridsearch CV
+from sklearn.model_selection import GridSearchCV
+#PARAMETER GRID
+param_grid = {
+    'classifier__criterion': ['gini'],
+    'classifier__max_depth': [22,23,32,34,36],
+    'classifier__min_samples_split': [3,3.25,3.5,3.75],
+    'classifier__min_samples_leaf': [1]
+}
+#5-FOLD STRATIFIED CROSS VALIDATION
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+#GRID SEARCH
+dt_grid = GridSearchCV(
+    estimator=dt_pipeline,
+    param_grid=param_grid,
+    cv=cv,
+    scoring='f1_macro',
+    n_jobs=-1,
+    verbose=3
+)
+#TRAIN GRID SEARCH
+dt_grid.fit(X_train, y_train)
+#BEST PARAMETERS
+print("Best Parameters:")
+print(dt_grid.best_params_)
+
+print("\nBest CV F1 Macro:")
+print(dt_grid.best_score_)
+
+# FINAL PREDICTION
+dt_pred_grid = dt_grid.predict(X_test)
+
+# EVALUATION METRICS
+dt_accuracy = accuracy_score(y_test, dt_pred_grid)
+dt_precision = precision_score(
+    y_test,
+    dt_pred_grid,
+    average='macro',
+    zero_division=0
+)
+dt_recall = recall_score(
+    y_test,
+    dt_pred_grid,
+    average='macro',
+    zero_division=0
+)
+dt_f1_macro = f1_score(
+    y_test,
+    dt_pred_grid,
+    average='macro',
+    zero_division=0
+)
+dt_f1_weighted = f1_score(
+    y_test,
+    dt_pred_grid,
+    average='weighted',
+    zero_division=0
+)
+#FINAL RESULTS
+print("=" * 60)
+print("TUNED DECISION TREE - EVALUATION")
+print("=" * 60)
+print("5-Fold CV F1 Macro:", dt_grid.best_score_)
+print("Test Accuracy:", dt_accuracy)
+print("Test Precision Macro:", dt_precision)
+print("Test Recall Macro:", dt_recall)
+print("Test F1 Macro:", dt_f1_macro)
+print("Test F1 Weighted:", dt_f1_weighted)
+# CLASSIFICATION REPORT
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    dt_pred_grid,
+    zero_division=0
+))
+# CONFUSION MATRIX
+dt_cm = confusion_matrix(y_test, dt_pred_grid)
+print("\nConfusion Matrix:")
+print(dt_cm)
+# CONFUSION MATRIX PLOT
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    dt_cm,
+    annot=True,
+    fmt='d',
+    xticklabels=dt_grid.classes_,
+    yticklabels=dt_grid.classes_
+)
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Tuned Decision Tree - Confusion Matrix")
+plt.show()
+
+
+
 
