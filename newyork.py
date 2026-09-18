@@ -304,8 +304,8 @@ from sklearn.model_selection import GridSearchCV
 #PARAMETER GRID
 param_grid = {
     'classifier__criterion': ['gini'],
-    'classifier__max_depth': [22,23,32,34,36],
-    'classifier__min_samples_split': [3,3.25,3.5,3.75],
+    'classifier__max_depth': [22],
+    'classifier__min_samples_split': [3],
     'classifier__min_samples_leaf': [1]
 }
 #5-FOLD STRATIFIED CROSS VALIDATION
@@ -480,5 +480,716 @@ plt.ylabel("Actual Label")
 plt.title("Random Forest - Confusion Matrix")
 plt.show()
 
+# Hyperparameter Tuning for Random Forest using GridSearchCV
+
+param_grid = {
+    'classifier__n_estimators': [300],
+    'classifier__max_depth': [None],
+    'classifier__min_samples_split': [5],
+    'classifier__min_samples_leaf': [1],
+    'classifier__max_features': ['sqrt'],
+}
+# 5-FOLD STRATIFIED CV
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+# GRID SEARCH
+rf_grid = GridSearchCV(
+    estimator=rf_pipeline,
+    param_grid=param_grid,
+    cv=cv,
+    scoring='f1_macro',
+    n_jobs=-1,
+    verbose=3,
+    refit=True
+)
+# TRAIN
+rf_grid.fit(X_train, y_train)
+# BEST PARAMETERS
+print("Best Parameters:")
+print(rf_grid.best_params_)
+
+print("\nBest CV Macro-F1:")
+print(rf_grid.best_score_)
+
+# FINAL PREDICTION
+rf_pred_grid = rf_grid.predict(X_test)
+
+# EVALUATION METRICS
+rf_grid_accuracy = accuracy_score(y_test, rf_pred_grid)
+rf_grid_precision = precision_score(
+    y_test,
+    rf_pred_grid,
+    average='macro',
+    zero_division=0
+)
+rf_grid_recall = recall_score(
+    y_test,
+    rf_pred_grid,
+    average='macro',
+    zero_division=0
+)
+rf_grid_f1_macro = f1_score(
+    y_test,
+    rf_pred_grid,
+    average='macro',
+    zero_division=0
+)
+rf_grid_f1_weighted = f1_score(
+    y_test,
+    rf_pred_grid,
+    average='weighted',
+    zero_division=0
+)
+#FINAL RESULTS
+print("=" * 60)
+print("TUNED RANDOM FOREST - EVALUATION")
+print("=" * 60)
+print("5-Fold CV F1 Macro:", rf_grid.best_score_)
+print("Test Accuracy:", rf_grid_accuracy)
+print("Test Precision Macro:", rf_grid_precision)
+print("Test Recall Macro:", rf_grid_recall)
+print("Test F1 Macro:", rf_grid_f1_macro)
+print("Test F1 Weighted:", rf_grid_f1_weighted)
+# CLASSIFICATION REPORT
+print("\nClassification Report:")
+print(classification_report(
+    y_test,
+    rf_pred_grid,
+    zero_division=0
+))
+# CONFUSION MATRIX
+rf_cm = confusion_matrix(y_test, rf_pred_grid)
+print("\nConfusion Matrix:")
+print(rf_cm)
+# CONFUSION MATRIX PLOT
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    rf_cm,
+    annot=True,
+    fmt='d',
+    xticklabels=rf_grid.classes_,
+    yticklabels=rf_grid.classes_
+)
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Tuned Random Forest - Confusion Matrix")
+plt.show()
+
+#train xg boost model with default parameters
+from sklearn.utils.class_weight import compute_sample_weight
+class_mapping = {
+    'Entire home/apt': 0,
+    'Private room': 1,
+    'Shared room': 2
+}
+
+y_train_xgb = y_train.map(class_mapping)
+y_test_xgb = y_test.map(class_mapping)
+
+print(y_train_xgb.value_counts())
+print(y_test_xgb.value_counts())
+
+sample_weights = compute_sample_weight(
+    class_weight='balanced',
+    y=y_train_xgb
+)
+
+print("Sample weights calculated successfully.")
+
+xgb_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', XGBClassifier(
+        objective='multi:softmax',
+        num_class=3,
+        eval_metric='mlogloss',
+        random_state=42,
+        n_jobs=-1
+    ))
+])
+
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+
+cv = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+
+xgb_cv_scores = cross_val_score(
+    xgb_pipeline,
+    X_train,
+    y_train_xgb,
+    cv=cv,
+    scoring='f1_macro',
+    params={
+        'classifier__sample_weight': sample_weights
+    }
+)
+
+print("5-Fold F1 Macro Scores:", xgb_cv_scores)
+print("Mean CV F1 Macro:", xgb_cv_scores.mean())
+
+xgb_pipeline.fit(
+    X_train,
+    y_train_xgb,
+    classifier__sample_weight=sample_weights
+)
+
+xgb_pred = xgb_pipeline.predict(X_test)
+
+# EVALUATION METRICS
+xgb_accuracy = accuracy_score(y_test_xgb, xgb_pred)
+
+xgb_precision = precision_score(
+    y_test_xgb,
+    xgb_pred,
+    average='macro',
+    zero_division=0
+)
+
+xgb_recall = recall_score(
+    y_test_xgb,
+    xgb_pred,
+    average='macro',
+    zero_division=0
+)
+
+xgb_f1_macro = f1_score(
+    y_test_xgb,
+    xgb_pred,
+    average='macro',
+    zero_division=0
+)
+
+xgb_f1_weighted = f1_score(
+    y_test_xgb,
+    xgb_pred,
+    average='weighted',
+    zero_division=0
+)
 
 
+# FINAL RESULTS
+print("=" * 60)
+print("DEFAULT XGBOOST - EVALUATION")
+print("=" * 60)
+
+print("5-Fold CV F1 Macro:", xgb_cv_scores.mean())
+print("Test Accuracy:", xgb_accuracy)
+print("Test Precision Macro:", xgb_precision)
+print("Test Recall Macro:", xgb_recall)
+print("Test F1 Macro:", xgb_f1_macro)
+print("Test F1 Weighted:", xgb_f1_weighted)
+
+
+# CLASSIFICATION REPORT
+print("\nClassification Report:")
+print(classification_report(
+    y_test_xgb,
+    xgb_pred,
+    zero_division=0
+))
+
+
+# CONFUSION MATRIX
+xgb_cm = confusion_matrix(y_test_xgb, xgb_pred)
+
+print("\nConfusion Matrix:")
+print(xgb_cm)
+
+
+# CONFUSION MATRIX PLOT
+plt.figure(figsize=(8, 6))
+
+sns.heatmap(
+    xgb_cm,
+    annot=True,
+    fmt='d',
+    xticklabels=class_mapping.keys(),
+    yticklabels=class_mapping.keys()
+)
+
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Default XGBoost - Confusion Matrix")
+plt.show()
+
+
+#tuning XGBoost hyperparameters can be done using GridSearchCV 
+
+X_xgb_train, X_xgb_val, y_xgb_train, y_xgb_val = train_test_split(
+    X_train,
+    y_train_xgb,
+    test_size=0.20,
+    random_state=42,
+    stratify=y_train_xgb
+)
+
+xgb_sample_weights = compute_sample_weight(
+    class_weight='balanced',
+    y=y_xgb_train
+)
+xgb_pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', XGBClassifier(
+        objective='multi:softmax',
+        num_class=3,
+        eval_metric='mlogloss',
+        random_state=42,
+        n_jobs=-1
+    ))
+])
+
+param_grid = {
+    "classifier__n_estimators": [400],
+    "classifier__max_depth": [7],
+    "classifier__learning_rate": [0.1],
+    "classifier__min_child_weight": [1],
+    "classifier__subsample": [0.8],
+    "classifier__colsample_bytree": [0.8],
+    "classifier__gamma": [0.1]
+}
+
+from sklearn.model_selection import GridSearchCV, PredefinedSplit
+import numpy as np
+
+# Combine training and validation data
+X_grid = pd.concat([X_xgb_train, X_xgb_val])
+y_grid = pd.concat([y_xgb_train, y_xgb_val])
+
+# -1 = training data
+#  0 = validation data
+test_fold = np.concatenate([
+    np.full(len(X_xgb_train), -1),
+    np.zeros(len(X_xgb_val))
+])
+
+ps = PredefinedSplit(test_fold=test_fold)
+
+# Combine sample weights
+grid_sample_weights = np.concatenate([
+    xgb_sample_weights,
+    np.zeros(len(X_xgb_val))
+])
+
+xgb_grid = GridSearchCV(
+    estimator=xgb_pipeline,
+    param_grid=param_grid,
+    scoring='f1_macro',
+    cv=ps,
+    n_jobs=1,
+    verbose=3,
+    refit=True
+)
+
+xgb_grid.fit(
+    X_grid,
+    y_grid,
+    classifier__sample_weight=grid_sample_weights
+)
+
+print("Best parameters found: ", xgb_grid.best_params_)
+print("Best cross-validation score: ", xgb_grid.best_score_)
+
+xgb_pred_grid = xgb_grid.predict(X_test)
+
+# EVALUATION METRICS
+xgb_accuracy = accuracy_score(
+    y_test_xgb,
+    xgb_pred_grid
+)
+
+xgb_precision = precision_score(
+    y_test_xgb,
+    xgb_pred_grid,
+    average='macro',
+    zero_division=0
+)
+
+xgb_recall = recall_score(
+    y_test_xgb,
+    xgb_pred_grid,
+    average='macro',
+    zero_division=0
+)
+
+xgb_f1_macro = f1_score(
+    y_test_xgb,
+    xgb_pred_grid,
+    average='macro',
+    zero_division=0
+)
+
+xgb_f1_weighted = f1_score(
+    y_test_xgb,
+    xgb_pred_grid,
+    average='weighted',
+    zero_division=0
+)
+
+
+# FINAL RESULTS
+print("=" * 60)
+print("TUNED XGBOOST - EVALUATION")
+print("=" * 60)
+
+print("Validation F1 Macro:", xgb_grid.best_score_)
+print("Test Accuracy:", xgb_accuracy)
+print("Test Precision Macro:", xgb_precision)
+print("Test Recall Macro:", xgb_recall)
+print("Test F1 Macro:", xgb_f1_macro)
+print("Test F1 Weighted:", xgb_f1_weighted)
+
+
+# CLASSIFICATION REPORT
+print("\nClassification Report:")
+print(classification_report(
+    y_test_xgb,
+    xgb_pred_grid,
+    zero_division=0
+))
+
+
+# CONFUSION MATRIX
+xgb_cm = confusion_matrix(
+    y_test_xgb,
+    xgb_pred_grid
+)
+
+print("\nConfusion Matrix:")
+print(xgb_cm)
+
+
+# CONFUSION MATRIX PLOT
+plt.figure(figsize=(8, 6))
+
+sns.heatmap(
+    xgb_cm,
+    annot=True,
+    fmt='d',
+    xticklabels=class_mapping.keys(),
+    yticklabels=class_mapping.keys()
+)
+
+plt.xlabel("Predicted Label")
+plt.ylabel("Actual Label")
+plt.title("Tuned XGBoost - Confusion Matrix")
+
+plt.show()
+
+
+# ============================================================
+# FINAL MODEL COMPARISON
+# ============================================================
+
+import pandas as pd
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
+
+# ------------------------------------------------------------
+# PREDICTIONS FROM ALL MODELS
+# ------------------------------------------------------------
+
+# Logistic Regression
+lr_final_pred = lr_pipeline.predict(X_test)
+
+# Decision Tree - Default
+dt_default_pred = dt_pipeline.predict(X_test)
+
+# Decision Tree - Tuned
+dt_tuned_pred = dt_grid.predict(X_test)
+
+# Random Forest - Default
+rf_default_pred = rf_pipeline.predict(X_test)
+
+# Random Forest - Tuned
+rf_tuned_pred = rf_grid.predict(X_test)
+
+# XGBoost - Default
+xgb_default_pred = xgb_pipeline.predict(X_test)
+
+# XGBoost - Tuned
+xgb_tuned_pred = xgb_grid.predict(X_test)
+
+
+# ------------------------------------------------------------
+# FUNCTION TO CALCULATE METRICS
+# ------------------------------------------------------------
+
+def calculate_metrics(y_true, y_pred):
+
+    return {
+        "Test Accuracy": accuracy_score(y_true, y_pred),
+
+        "Test Precision Macro": precision_score(
+            y_true,
+            y_pred,
+            average='macro',
+            zero_division=0
+        ),
+
+        "Test Recall Macro": recall_score(
+            y_true,
+            y_pred,
+            average='macro',
+            zero_division=0
+        ),
+
+        "Test F1 Macro": f1_score(
+            y_true,
+            y_pred,
+            average='macro',
+            zero_division=0
+        ),
+
+        "Test F1 Weighted": f1_score(
+            y_true,
+            y_pred,
+            average='weighted',
+            zero_division=0
+        )
+    }
+
+
+# ------------------------------------------------------------
+# CALCULATE METRICS
+# ------------------------------------------------------------
+
+lr_metrics = calculate_metrics(
+    y_test,
+    lr_final_pred
+)
+
+dt_default_metrics = calculate_metrics(
+    y_test,
+    dt_default_pred
+)
+
+dt_tuned_metrics = calculate_metrics(
+    y_test,
+    dt_tuned_pred
+)
+
+rf_default_metrics = calculate_metrics(
+    y_test,
+    rf_default_pred
+)
+
+rf_tuned_metrics = calculate_metrics(
+    y_test,
+    rf_tuned_pred
+)
+
+xgb_default_metrics = calculate_metrics(
+    y_test_xgb,
+    xgb_default_pred
+)
+
+xgb_tuned_metrics = calculate_metrics(
+    y_test_xgb,
+    xgb_tuned_pred
+)
+
+
+# ------------------------------------------------------------
+# CREATE FINAL COMPARISON TABLE
+# ------------------------------------------------------------
+
+comparison_results = [
+
+    {
+        "Model": "Logistic Regression",
+        "Balance Strategy": "class_weight='balanced'",
+        "CV F1 Macro": lr_cv_f1,
+        **lr_metrics
+    },
+
+    {
+        "Model": "Decision Tree - Default",
+        "Balance Strategy": "class_weight='balanced'",
+        "CV F1 Macro": dt_cv_f1,
+        **dt_default_metrics
+    },
+
+    {
+        "Model": "Decision Tree - Tuned",
+        "Balance Strategy": "class_weight='balanced'",
+        "CV F1 Macro": dt_grid.best_score_,
+        **dt_tuned_metrics
+    },
+
+    {
+        "Model": "Random Forest - Default",
+        "Balance Strategy": "class_weight='balanced'",
+        "CV F1 Macro": rf_cv_f1,
+        **rf_default_metrics
+    },
+
+    {
+        "Model": "Random Forest - Tuned",
+        "Balance Strategy": "class_weight='balanced'",
+        "CV F1 Macro": rf_grid.best_score_,
+        **rf_tuned_metrics
+    },
+
+    {
+        "Model": "XGBoost - Default",
+        "Balance Strategy": "Balanced sample_weight",
+        "CV F1 Macro": xgb_cv_scores.mean(),
+        **xgb_default_metrics
+    },
+
+    {
+        "Model": "XGBoost - Tuned",
+        "Balance Strategy": "Balanced sample_weight",
+        "CV F1 Macro": xgb_grid.best_score_,
+        **xgb_tuned_metrics
+    }
+]
+
+
+# ------------------------------------------------------------
+# DATAFRAME
+# ------------------------------------------------------------
+
+comparison_df = pd.DataFrame(comparison_results)
+
+
+# ------------------------------------------------------------
+# SORT BY TEST MACRO F1
+# ------------------------------------------------------------
+
+comparison_df = comparison_df.sort_values(
+    by="Test F1 Macro",
+    ascending=False
+).reset_index(drop=True)
+
+
+# ------------------------------------------------------------
+# DISPLAY RESULTS
+# ------------------------------------------------------------
+
+print("=" * 120)
+print("FINAL MODEL COMPARISON")
+print("=" * 120)
+
+display(comparison_df.round(4))
+
+
+#Then add Shared Room performance
+
+# ============================================================
+# SHARED ROOM PERFORMANCE
+# ============================================================
+
+shared_room_results = []
+
+
+def shared_room_metrics(y_true, y_pred, shared_label):
+
+    return {
+        "Shared Room Precision": precision_score(
+            y_true,
+            y_pred,
+            labels=[shared_label],
+            average='macro',
+            zero_division=0
+        ),
+
+        "Shared Room Recall": recall_score(
+            y_true,
+            y_pred,
+            labels=[shared_label],
+            average='macro',
+            zero_division=0
+        ),
+
+        "Shared Room F1": f1_score(
+            y_true,
+            y_pred,
+            labels=[shared_label],
+            average='macro',
+            zero_division=0
+        )
+    }
+
+
+shared_room_results.append({
+    "Model": "Logistic Regression",
+    **shared_room_metrics(y_test, lr_final_pred, "Shared room")
+})
+
+shared_room_results.append({
+    "Model": "Decision Tree - Default",
+    **shared_room_metrics(y_test, dt_default_pred, "Shared room")
+})
+
+shared_room_results.append({
+    "Model": "Decision Tree - Tuned",
+    **shared_room_metrics(y_test, dt_tuned_pred, "Shared room")
+})
+
+shared_room_results.append({
+    "Model": "Random Forest - Default",
+    **shared_room_metrics(y_test, rf_default_pred, "Shared room")
+})
+
+shared_room_results.append({
+    "Model": "Random Forest - Tuned",
+    **shared_room_metrics(y_test, rf_tuned_pred, "Shared room")
+})
+
+shared_room_results.append({
+    "Model": "XGBoost - Default",
+    **shared_room_metrics(y_test_xgb, xgb_default_pred, 2)
+})
+
+shared_room_results.append({
+    "Model": "XGBoost - Tuned",
+    **shared_room_metrics(y_test_xgb, xgb_tuned_pred, 2)
+})
+
+
+shared_room_df = pd.DataFrame(shared_room_results)
+
+shared_room_df = shared_room_df.sort_values(
+    by="Shared Room F1",
+    ascending=False
+).reset_index(drop=True)
+
+
+print("=" * 100)
+print("SHARED ROOM - MINORITY CLASS PERFORMANCE")
+print("=" * 100)
+
+display(shared_room_df.round(4))
+
+#Finally, identify the model selected by Macro F1
+
+# ============================================================
+# FINAL MODEL SELECTION
+# ============================================================
+
+best_model_name = comparison_df.loc[
+    comparison_df["Test F1 Macro"].idxmax(),
+    "Model"
+]
+
+best_f1 = comparison_df.loc[
+    comparison_df["Test F1 Macro"].idxmax(),
+    "Test F1 Macro"
+]
+
+print("=" * 70)
+print("MODEL WITH HIGHEST TEST MACRO F1")
+print("=" * 70)
+
+print("Model:", best_model_name)
+print("Test F1 Macro:", round(best_f1, 4))
